@@ -51,5 +51,3 @@ class BitcoinExchange
 
     void getExchangeRate( const std::string inputPath );
 };
-
-
