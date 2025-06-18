@@ -197,7 +197,7 @@ int BitcoinExchange::dateCheck( const std::string& date )
   if ( timeStruct.tm_mday != original_day )
     return ( std::cerr << "Error: invalid date ", 1 );
   return 0;
-}when is epoch?
+}
 
 
 int BitcoinExchange::valueCheck( const std::string& valueString, double* value )
