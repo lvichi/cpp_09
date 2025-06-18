@@ -18,7 +18,7 @@
 #include <string>          // string
 #include <cstring>         // strerror
 #include <fstream>         // ifstream
-#include <ctime>           // tm, strptime
+#include <ctime>           // tm, strptime, mktime
 #include <cstdlib>         // strtod
 
 #define MAX_VALUE 1000

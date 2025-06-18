@@ -183,14 +183,21 @@ std::string BitcoinExchange::stringTrim( const std::string& str )
 int BitcoinExchange::dateCheck( const std::string& date )
 {
   struct tm timeStruct;
+  memset( &timeStruct, 0, sizeof(timeStruct) );
 
   char* endPtr = strptime( date.c_str(), "%Y-%m-%d", &timeStruct );
 
   if ( endPtr == NULL || *endPtr != '\0' )
     return ( std::cerr << "Error: invalid date ", 1 );
 
+  int original_day = timeStruct.tm_mday;
+
+  std::mktime( &timeStruct );
+
+  if ( timeStruct.tm_mday != original_day )
+    return ( std::cerr << "Error: invalid date ", 1 );
   return 0;
-}
+}when is epoch?
 
 
 int BitcoinExchange::valueCheck( const std::string& valueString, double* value )
