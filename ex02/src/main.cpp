@@ -13,9 +13,6 @@
 
 #include "PmergeMe.hpp"
 #include <iostream>
-//#include <string>
-//#include <vector>
-//#include <list>
 #include <sys/time.h>    // timeval gettimeofday
 
 
@@ -38,7 +35,9 @@ int main( int argc, char** argv )
   std::cout << "Before: " << printContainer( containerVector ) << std::endl;
 
   timer();
+
   ::PmergeMe( containerVector );
+
   double vectorTimer = timer();
 
 //  std::cout << "After:  " << printContainer( containerVector ) << std::endl;
@@ -54,7 +53,9 @@ int main( int argc, char** argv )
 //  std::cout << "Before: " << printContainer( containerList ) << std::endl;
 
   timer();
+
   ::PmergeMe( containerList );
+
   double listTimer = timer();
 
   std::cout << "After:  " << ::printContainer( containerList ) << std::endl;
