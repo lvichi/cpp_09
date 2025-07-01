@@ -13,89 +13,33 @@
 
 #pragma once
 
-#include <cstdlib>      // strtol
-#include <iostream>     // cerr
+#include <cstdlib>      // std::strtol
+#include <iostream>     // std::cerr
 #include <climits>      // INT_MAX
-#include <algorithm>    // find insert
-#include <iterator>     // distance advance
+#include <iterator>     // std::advance
+#include <algorithm>    // std::swap, std::find
+#include <sstream>      // stringstream
 #include <vector>
 #include <list>
 
 
-template <typename container> void PmergeMe( container& originalContainer );
+// Parsing
 template <typename T> int parseNumbers( T& container, char** numbers );
+
+// Sorting
+template <typename container> void PmergeMe( container& originalContainer );
 template <typename container> void linearInsert( container& sorted, container& pendents );
-template <typename T> struct triple
-{
-  T* big;
-  void* smallPair;
-  void* bigPair;
-
-  triple() : big( 0 ), smallPair( 0 ), bigPair( 0 ) {}
-  triple( T* big, void* smallPair, void* bigPair ) : big( big ), smallPair( smallPair ), bigPair( bigPair ) {}
-  triple( const triple& rhs ) : big( rhs.big ), smallPair( rhs.smallPair ), bigPair( rhs.bigPair ) {}
-  triple& operator=( const triple& rhs ) {
-    if ( this != &rhs ) {
-      this->big = rhs.big;
-      this->smallPair = rhs.smallPair;
-      this->bigPair = rhs.bigPair;
-    }
-    return *this;
-  }
-  ~triple() {}
-
-  void swap() {
-    if ( this->smallPair && this->bigPair ) {
-      std::swap( *static_cast<triple*>( this->smallPair ),
-                 *static_cast<triple*>( this->bigPair ) );
-      std::swap( this->smallPair, this->bigPair );
-      static_cast<triple*>(this->smallPair)->swap();
-      static_cast<triple*>(this->bigPair)->swap();
-    }
-  }
-
-  // Comparison operators
-  bool operator<( const triple& rhs ) const { return *this->big < *rhs.big; }
-  bool operator>( const triple& rhs ) const { return *this->big > *rhs.big; }
-  bool operator==( const triple& rhs ) const { return *this->big == *rhs.big; }
-  bool operator!=( const triple& rhs ) const { return *this->big != *rhs.big; }
-  bool operator<=( const triple& rhs ) const { return *this->big <= *rhs.big; }
-  bool operator>=( const triple& rhs ) const { return *this->big >= *rhs.big; }
-};
-
-
-template <typename T>
-triple<T> makeTriple( T* big, void* smallPair = 0, void* bigPair  = 0)
-{
-  return triple<T>(big, smallPair, bigPair);
-};
-
-
-
-// LOG
-template <typename T> void printContainer( T& container );
-template <typename T> void printTriples( T& container );
-
+template <typename container> void jacobsthalInsert( container& sorted, container& pendents );
+template <typename T> struct pairNode;
 
 // Rebinding Container to hold std::pair<T*, void*>
-template <typename container> struct tripleContainer;
-template <typename T, typename Alloc>
-struct tripleContainer< std::vector<T, Alloc> >
-{
-  typedef ::triple<T> tripleValue;
-  typedef typename Alloc::template rebind<tripleValue>::other tripleAlloc;
-  typedef std::vector<tripleValue, tripleAlloc> type;
-};
+template <typename container> struct pairNodeContainer;
+template <typename T, typename Alloc> struct pairNodeContainer< std::vector<T, Alloc> >;
+template <typename T, typename Alloc> struct pairNodeContainer< std::list<T, Alloc> >;
 
-template <typename T, typename Alloc>
-struct tripleContainer< std::list<T, Alloc> >
-{
-  typedef ::triple<T> tripleValue;
-  typedef typename Alloc::template rebind<tripleValue>::other tripleAlloc;
-  typedef std::list<tripleValue, tripleAlloc> type;
-};
-
-
+// LOG
+template <typename T> std::string printContainer( T& container );
+template <typename T> std::string printPairs( T& container );
 
 
 template <typename container>
@@ -105,63 +49,50 @@ void PmergeMe( container& originalContainer )
     return;
 
   typedef typename container::value_type containerType;
-  typedef typename tripleContainer<container>::type tContainer;
-  tContainer pairs[ originalContainer.size() / 2 + 3 ] = {};
+  typedef typename pairNodeContainer<container>::type pNodeContainer;
+  pNodeContainer pairs[ originalContainer.size() / 2 + 3 ] = {};
 
   for ( typename container::iterator it = originalContainer.begin(); it != originalContainer.end(); ++it ) {
     containerType* big = &(*it);
     void* smallPair = 0;
     void* bigPair = 0;
 
-    ::triple<containerType> pair = ::makeTriple( big, smallPair, bigPair );
+    ::pairNode<containerType> pair( big, smallPair, bigPair );
     pairs[0].push_back(pair);
   }
 
 //  // debug
-//  std::cout << std::endl;
-//  printTriples(pairs[0]);
-//  std::cout << std::endl << std::endl;
+//  std::cout << std::endl << printPairs(pairs[0]) << std::endl << std::endl;
 
   unsigned int iLevel = 0;
   while ( true ) {
     unsigned int iLevelNext = iLevel + 1;
 
-    typename tContainer::iterator itPairs = pairs[iLevel].begin();
+    typename pNodeContainer::iterator itPairs = pairs[iLevel].begin();
     while ( itPairs != pairs[iLevel].end() ) {
-      ::triple<containerType>* small = &(*itPairs);
+      ::pairNode<containerType>* small = &(*itPairs);
       ++itPairs;
 
-      ::triple<containerType>* big;
+      ::pairNode<containerType>* big = &(*itPairs);
       if ( itPairs == pairs[iLevel].end() )
         big = small;
-      else
-        big = &(*itPairs);
 
-      if ( *big < *small ) {
-//        std::cout << "Swapping big and small pairs: " << *big->big << " < " << *small->big << std::endl;
+      if ( *big->big < *small->big )
         std::swap( *big, *small );
-//        static_cast<triple<containerType>*>(big)->swap();
-//        static_cast<triple<containerType>*>(small)->swap();
 
-      }
-
-      ::triple<containerType> pair = ::makeTriple( &(*big->big), small, big  );
-      pairs[iLevelNext].push_back(pair);
+      ::pairNode<containerType> pair( &( *big->big ), small, big  );
+      pairs[iLevelNext].push_back( pair );
 
       if ( itPairs == pairs[iLevel].end() ) {
         ( pairs[iLevelNext].back() ).smallPair = 0;
-        ( pairs[iLevelNext].back() ).bigPair = 0;
         break;
       }
 
       ++itPairs;
-
     }
 
 //    // debug
-//    std::cout << std::endl;
-//    printTriples(pairs[iLevelNext]);
-//    std::cout << std::endl << std::endl;
+//    std::cout << std::endl << printPairs(pairs[iLevelNext]) << std::endl << std::endl;
 
     ++iLevel;
 
@@ -169,40 +100,21 @@ void PmergeMe( container& originalContainer )
       break;
   }
 
-
-//  // DEBUG
-//  iLevel = 0;
-//  while ( pairs[iLevel].size() > 0 ) {
-//    std::cout << std::endl;
-//    printTriples(pairs[iLevel]);
-//    std::cout << std::endl << std::endl;
-//    ++iLevel;
-//  }
-//  --iLevel;
-
-
-//  std::cout << std::endl;
-//  std::cout << std::endl;
-
-
-  tContainer sorted;
+  pNodeContainer sorted;
 
   sorted.push_back( pairs[iLevel].back() );
 
 //  // DEBUG
-//  std::cout << std::endl;
-//  std::cout << "sorted: ";
-//  printTriples( sorted );
-//  std::cout << std::endl << std::endl;
+//  std::cout << std::endl << "sorted: " << printPairs( sorted ) << std::endl << std::endl;
 
   while ( iLevel > 0 ) {
-    tContainer pendents;
+    pNodeContainer pendents;
 
-    typename tContainer::iterator itPairs = sorted.begin();
+    typename pNodeContainer::iterator itPairs = sorted.begin();
     while ( itPairs != sorted.end() ) {
-      triple<containerType>* bigPair;
+      pairNode<containerType>* bigPair;
       if ( ( *itPairs ).bigPair )
-        bigPair = static_cast<triple<containerType>*>( ( *itPairs ).bigPair );
+        bigPair = static_cast<pairNode<containerType>*>( ( *itPairs ).bigPair );
       else
         bigPair = &(*itPairs);
 
@@ -211,7 +123,7 @@ void PmergeMe( container& originalContainer )
         ++itPairs;
         continue;
       }
-      ::triple<containerType>* smallPair = static_cast<triple<containerType>*>( ( *itPairs ).smallPair );
+      ::pairNode<containerType>* smallPair = static_cast<pairNode<containerType>*>( ( *itPairs ).smallPair );
       pendents.push_back( *smallPair );
 
       std::swap( *itPairs, *bigPair );
@@ -219,46 +131,52 @@ void PmergeMe( container& originalContainer )
       ++itPairs;
     }
 
-//    //debug
-//    std::cout << std::endl;
-//    std::cout << "pendent: ";
-//    printTriples( pendents );
-//    std::cout << std::endl << std::endl;
-
-    ::linearInsert( sorted, pendents );
-
-//    //debug
-//    std::cout << std::endl;
-//    std::cout << "sorted: ";
-//    printTriples( sorted );
-//    std::cout << std::endl << std::endl;
+//    ::linearInsert( sorted, pendents );
+    ::jacobsthalInsert( sorted, pendents );
 
     --iLevel;
 
+//    //debug
+//    std::cout << std::endl << "pendent: " << printPairs( pendents ) << std::endl << std::endl;
+//    std::cout << std::endl << "sorted: " << printPairs( sorted ) << std::endl << std::endl;
   }
 
   container sortedContainer;
-//  sortedContainer.resize( originalContainer.size() );
-  for ( typename tContainer::iterator it = sorted.begin(); it != sorted.end(); ++it ) {
+  for ( typename pNodeContainer::iterator it = sorted.begin(); it != sorted.end(); ++it ) {
     sortedContainer.push_back( *(*it).big );
   }
 
   originalContainer = sortedContainer;
 
-//    //debug
-//    std::cout << std::endl;
-//    std::cout << "sorted: ";
-//    printTriples( sorted );
-//    std::cout << std::endl << std::endl;
-
+//  //debug
+//  std::cout << std::endl << "sorted: " << printPairs( sorted ) << std::endl << std::endl;
 
 //  //debug
-//  std::cout << std::endl;
-//  printContainer( originalContainer );
-//  std::cout << std::endl << std::endl;
+//  std::cout << std::endl << printContainer( originalContainer ); std::cout << std::endl << std::endl;
 
   return;
 }
+
+
+template <typename T> struct pairNode
+{
+  T* big;
+  void* smallPair;
+  void* bigPair;
+
+  pairNode() : big( 0 ), smallPair( 0 ), bigPair( 0 ) {}
+  pairNode( T* big, void* smallPair, void* bigPair ) : big( big ), smallPair( smallPair ), bigPair( bigPair ) {}
+  pairNode( const pairNode& rhs ) : big( rhs.big ), smallPair( rhs.smallPair ), bigPair( rhs.bigPair ) {}
+  pairNode& operator=( const pairNode& rhs ) {
+    if ( this != &rhs ) {
+      this->big = rhs.big;
+      this->smallPair = rhs.smallPair;
+      this->bigPair = rhs.bigPair;
+    }
+    return *this;
+  }
+  ~pairNode() {}
+};
 
 
 template <typename container> void linearInsert( container& sorted, container& pendents )
@@ -287,6 +205,60 @@ template <typename container> void linearInsert( container& sorted, container& p
 }
 
 
+template <typename container> void jacobsthalInsert( container& sorted, container& pendents )
+{
+  std::vector<unsigned int> jacobsthalIndex;
+
+  std::vector<unsigned int> jacobsthalNumbers( 2, 1 );
+  while (true) {
+    unsigned int next = jacobsthalNumbers.back() + 2 * jacobsthalNumbers[ jacobsthalNumbers.size() - 2 ];
+    if (next > pendents.size())
+      break;
+    jacobsthalNumbers.push_back(next);
+  }
+
+//  // DEBUG
+//  std::cout << std::endl << "jacobsthalNumbers: " << printContainer( jacobsthalNumbers ) << std::endl << std::endl;
+
+  for ( unsigned int k = jacobsthalNumbers.size() - 1; k >= 2; --k )
+    jacobsthalIndex.push_back( jacobsthalNumbers[k] - 1);
+
+//  // DEBUG
+//  std::cout << std::endl << "jacobsthalIndex: " << printContainer( jacobsthalIndex ) << std::endl << std::endl;
+
+  for ( unsigned int i = 0; i < pendents.size(); ++i )
+    if ( std::find(jacobsthalIndex.begin(), jacobsthalIndex.end(), i) == jacobsthalIndex.end() )
+      jacobsthalIndex.push_back(i);
+
+//  // DEBUG
+//  std::cout << std::endl << "jacobsthalIndex: " << printContainer( jacobsthalIndex ) << std::endl << std::endl;
+
+  unsigned int insertedIndex = 0;
+  unsigned int stragglerCount = sorted.size() - pendents.size();
+
+  for ( unsigned int i = 0; i < jacobsthalIndex.size(); ++i ) {
+    unsigned int jIndex = jacobsthalIndex[i];
+    typename container::iterator itPendents = pendents.begin();
+    std::advance(itPendents, jIndex);
+
+    typename container::iterator itSorted = sorted.begin();
+    std::advance( itSorted, ( insertedIndex + jIndex + stragglerCount )  );
+
+    while ( itSorted != sorted.begin() ) {
+      --itSorted;
+      if ( *( *itSorted ).big < *( *itPendents ).big ) {
+        ++itSorted;
+        break;
+      }
+    }
+
+    sorted.insert( itSorted, *itPendents );
+
+    ++itPendents;
+    ++insertedIndex;
+  }
+}
+
 
 template <typename T>
 int parseNumbers( T& container, char** numbers )
@@ -307,44 +279,66 @@ int parseNumbers( T& container, char** numbers )
 }
 
 
-template <typename T> void printContainer( T& container )
+template <typename T> std::string printContainer( T& container )
 {
+  std::stringstream sStream;
+
   typename T::iterator it = container.begin();
 
   while ( it != container.end() ) {
-    std::cout << *it << " ";
+    sStream << *it << " ";
     it++;
   }
+
+  return sStream.str();
 }
 
 
-template <typename T> void printTriples( T& container ) {
+template <typename T> std::string printPairs( T& container ) {
+  std::stringstream sStream;
 
-  std::cout << "pair.big(s): ";
+  sStream << "pair.big(s): ";
   for ( typename T::iterator it = container.begin(); it != container.end(); ++it ) {
     typename T::value_type pair = *it;
-    std::cout << *pair.big << " ";
+    sStream << *pair.big << " ";
   }
 
-  std::cout << std::endl;
-  std::cout << "pairs addresses: ";
+  sStream << std::endl;
+  sStream << "pairs addresses: ";
   for ( typename T::iterator it = container.begin(); it != container.end(); ++it ) {
-    std::cout << &(*it) << " ";
+    sStream << &(*it) << " ";
   }
 
-  std::cout << std::endl;
-  std::cout << "pair.smallPair(s): ";
-  for ( typename T::iterator it = container.begin(); it != container.end(); ++it ) {
-    typename T::value_type pair = *it;
-    std::cout << pair.smallPair << " ";
-  }
-
-  std::cout << std::endl;
-  std::cout << "pair.bigPair(s): ";
+  sStream << std::endl;
+  sStream << "pair.smallPair(s): ";
   for ( typename T::iterator it = container.begin(); it != container.end(); ++it ) {
     typename T::value_type pair = *it;
-    std::cout << pair.bigPair << " ";
+    sStream << pair.smallPair << " ";
   }
+
+  sStream << std::endl;
+  sStream << "pair.bigPair(s): ";
+  for ( typename T::iterator it = container.begin(); it != container.end(); ++it ) {
+    typename T::value_type pair = *it;
+    sStream << pair.bigPair << " ";
+  }
+
+  return sStream.str();
 }
 
 
+template <typename T, typename Alloc>
+struct pairNodeContainer< std::vector<T, Alloc> >
+{
+  typedef ::pairNode<T> pairNodeValue;
+  typedef typename Alloc::template rebind<pairNodeValue>::other pairNodeAlloc;
+  typedef std::vector<pairNodeValue, pairNodeAlloc> type;
+};
+
+template <typename T, typename Alloc>
+struct pairNodeContainer< std::list<T, Alloc> >
+{
+  typedef ::pairNode<T> pairNodeValue;
+  typedef typename Alloc::template rebind<pairNodeValue>::other pairNodeAlloc;
+  typedef std::list<pairNodeValue, pairNodeAlloc> type;
+};

@@ -13,15 +13,12 @@
 
 #include "PmergeMe.hpp"
 #include <iostream>
-#include <string>
-#include <vector>
-#include <list>
-#include <sstream>       // stringstream
+//#include <string>
+//#include <vector>
+//#include <list>
 #include <sys/time.h>    // timeval gettimeofday
-#include <exception>
 
 
-template <typename T> std::string printContainerElements( T& container );
 double timer();
 
 
@@ -32,40 +29,35 @@ int main( int argc, char** argv )
 
 
   // VECTOR
-
-
   std::vector<unsigned int> containerVector;
   containerVector.reserve( argc - 1 );
 
   if ( ::parseNumbers( containerVector, &argv[1] ) )
     return ( std::cerr << "Use with positive integers numbers." << std::endl, 1 );
 
-  std::cout << "Before: " << printContainerElements( containerVector ) << std::endl;
+  std::cout << "Before: " << printContainer( containerVector ) << std::endl;
 
   timer();
   ::PmergeMe( containerVector );
   double vectorTimer = timer();
 
-//  std::cout << "After: " << printContainerElements( containerVector ) << std::endl;
-
+//  std::cout << "After:  " << printContainer( containerVector ) << std::endl;
 
 
 
   // LIST
-
-
   std::list<unsigned int> containerList;
 
   if ( ::parseNumbers( containerList, &argv[1] ) )
     return ( std::cerr << "Use with positive integers numbers." << std::endl, 1 );
 
-  //std::cout << "Before: " << printContainerElements( containerList ) << std::endl;
+//  std::cout << "Before: " << printContainer( containerList ) << std::endl;
 
   timer();
   ::PmergeMe( containerList );
   double listTimer = timer();
 
-  std::cout << "After: " << printContainerElements( containerList ) << std::endl;
+  std::cout << "After:  " << ::printContainer( containerList ) << std::endl;
 
 
   std::cout << "Time to process a range of " << containerVector.size()
@@ -77,22 +69,6 @@ int main( int argc, char** argv )
             << " us" << std::endl;
 
   return 0;
-}
-
-
-template <typename T>
-std::string printContainerElements( T& container )
-{
-  std::stringstream ssNumbers;
-
-  typename T::iterator it = container.begin();
-
-  while ( it != container.end() ) {
-    ssNumbers << *it << " ";
-    it++;
-  }
-
-  return ssNumbers.str();
 }
 
 
