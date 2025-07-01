@@ -32,7 +32,7 @@ int main( int argc, char** argv )
 
 
   // VECTOR
-  timer();
+
 
   std::vector<unsigned int> containerVector;
   containerVector.reserve( argc - 1 );
@@ -42,37 +42,39 @@ int main( int argc, char** argv )
 
   std::cout << "Before: " << printContainerElements( containerVector ) << std::endl;
 
+  timer();
   ::PmergeMe( containerVector );
-
-  std::cout << "After: " << printContainerElements( containerVector ) << std::endl;
-
   double vectorTimer = timer();
 
+//  std::cout << "After: " << printContainerElements( containerVector ) << std::endl;
 
-//  // LIST
-//  timer();
-//
-//  std::list<unsigned int> containerList;
-//
-//  if ( ::parseNumbers( containerList, &argv[1] ) )
-//    return ( std::cerr << "Use with positive integers numbers." << std::endl, 1 );
-//
-//  // std::cout << "Before: " << printContainerElements( containerList ) << std::endl;
-//
-//  ::PmergeMe( containerList );
-//
-//  std::cout << "After: " << printContainerElements( containerList ) << std::endl;
-//
-//  double listTimer = timer();
+
+
+
+  // LIST
+
+
+  std::list<unsigned int> containerList;
+
+  if ( ::parseNumbers( containerList, &argv[1] ) )
+    return ( std::cerr << "Use with positive integers numbers." << std::endl, 1 );
+
+  //std::cout << "Before: " << printContainerElements( containerList ) << std::endl;
+
+  timer();
+  ::PmergeMe( containerList );
+  double listTimer = timer();
+
+  std::cout << "After: " << printContainerElements( containerList ) << std::endl;
 
 
   std::cout << "Time to process a range of " << containerVector.size()
             << " elements with std::vector : " << vectorTimer
             << " us" << std::endl;
 
-//  std::cout << "Time to process a range of " << containerList.size()
-//            << " elements with std::list : " << listTimer
-//            << " us" << std::endl;
+  std::cout << "Time to process a range of " << containerList.size()
+            << " elements with std::list : " << listTimer
+            << " us" << std::endl;
 
   return 0;
 }
