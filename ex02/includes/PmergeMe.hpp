@@ -30,6 +30,7 @@ template <typename T> int parseNumbers( T& container, char** numbers );
 template <typename container> void PmergeMe( container& originalContainer );
 template <typename container> void linearInsert( container& sorted, container& pendents );
 template <typename container> void jacobsthalInsert( container& sorted, container& pendents );
+template <typename T, typename Alloc> void jacobsthalInsert( std::list<T, Alloc>& sorted, std::list<T, Alloc>& pendents );
 template <typename T> struct pairNode;
 
 // Rebinding Container to hold std::pair<T*, void*>
@@ -50,7 +51,7 @@ void PmergeMe( container& originalContainer )
 
   typedef typename container::value_type containerType;
   typedef typename pairNodeContainer<container>::type pNodeContainer;
-  pNodeContainer pairs[ originalContainer.size() / 2 + 3 ] = {};
+  pNodeContainer* pairs = new pNodeContainer[ originalContainer.size() / 2 + 3 ];
 
   for ( typename container::iterator it = originalContainer.begin(); it != originalContainer.end(); ++it ) {
     containerType* big = &(*it);
@@ -146,6 +147,8 @@ void PmergeMe( container& originalContainer )
     sortedContainer.push_back( *(*it).big );
   }
 
+  delete[] pairs;
+
   originalContainer = sortedContainer;
 
 //  //debug
@@ -217,14 +220,8 @@ template <typename container> void jacobsthalInsert( container& sorted, containe
     jacobsthalNumbers.push_back(next);
   }
 
-//  // DEBUG
-//  std::cout << std::endl << "jacobsthalNumbers: " << printContainer( jacobsthalNumbers ) << std::endl << std::endl;
-
   for ( unsigned int k = jacobsthalNumbers.size() - 1; k >= 2; --k )
     jacobsthalIndex.push_back( jacobsthalNumbers[k] - 1);
-
-//  // DEBUG
-//  std::cout << std::endl << "jacobsthalIndex: " << printContainer( jacobsthalIndex ) << std::endl << std::endl;
 
   for ( unsigned int i = 0; i < pendents.size(); ++i )
     if ( std::find(jacobsthalIndex.begin(), jacobsthalIndex.end(), i) == jacobsthalIndex.end() )
@@ -233,16 +230,18 @@ template <typename container> void jacobsthalInsert( container& sorted, containe
 //  // DEBUG
 //  std::cout << std::endl << "jacobsthalIndex: " << printContainer( jacobsthalIndex ) << std::endl << std::endl;
 
-  unsigned int insertedIndex = 0;
-  unsigned int stragglerCount = sorted.size() - pendents.size();
+  unsigned int insertedCount = sorted.size() - pendents.size();
+  int lastJIndex = 0;
+  typename container::iterator itPendents = pendents.begin();
 
   for ( unsigned int i = 0; i < jacobsthalIndex.size(); ++i ) {
-    unsigned int jIndex = jacobsthalIndex[i];
-    typename container::iterator itPendents = pendents.begin();
-    std::advance(itPendents, jIndex);
+    int jIndex = jacobsthalIndex[i];
+
+    std::advance( itPendents, jIndex - lastJIndex );
+    lastJIndex = jIndex;
 
     typename container::iterator itSorted = sorted.begin();
-    std::advance( itSorted, ( insertedIndex + jIndex + stragglerCount )  );
+    std::advance( itSorted, ( insertedCount + jIndex )  );
 
     while ( itSorted != sorted.begin() ) {
       --itSorted;
@@ -254,8 +253,62 @@ template <typename container> void jacobsthalInsert( container& sorted, containe
 
     sorted.insert( itSorted, *itPendents );
 
-    ++itPendents;
-    ++insertedIndex;
+    ++insertedCount;
+  }
+}
+
+
+template <typename T, typename Alloc> void jacobsthalInsert( std::list<T, Alloc>& sorted, std::list<T, Alloc>& pendents )
+{
+  std::vector<unsigned int> jacobsthalIndex;
+
+  std::vector<unsigned int> jacobsthalNumbers( 2, 1 );
+  while (true) {
+    unsigned int next = jacobsthalNumbers.back() + 2 * jacobsthalNumbers[ jacobsthalNumbers.size() - 2 ];
+    if (next > pendents.size())
+      break;
+    jacobsthalNumbers.push_back(next);
+  }
+
+  for ( unsigned int k = jacobsthalNumbers.size() - 1; k >= 2; --k )
+    jacobsthalIndex.push_back( jacobsthalNumbers[k] - 1);
+
+  for ( unsigned int i = 0; i < pendents.size(); ++i )
+    if ( std::find(jacobsthalIndex.begin(), jacobsthalIndex.end(), i) == jacobsthalIndex.end() )
+      jacobsthalIndex.push_back( i );
+
+//  // DEBUG
+//  std::cout << std::endl << "jacobsthalIndex: " << printContainer( jacobsthalIndex ) << std::endl << std::endl;
+
+  int stragglersCount = sorted.size() - pendents.size();
+  int lastJIndex = 0;
+  int backIndex = 0;
+  typename std::list<T, Alloc>::iterator itPendents = pendents.begin();
+  typename std::list<T, Alloc>::iterator itSorted = sorted.begin();
+
+  std::advance( itSorted, stragglersCount );
+
+  for ( unsigned int i = 0; i < jacobsthalIndex.size(); ++i ) {
+    int jIndex = jacobsthalIndex[i];
+
+    std::advance( itPendents, ( jIndex - lastJIndex ) );
+    std::advance( itSorted, ( jIndex - lastJIndex ) + backIndex );
+
+    lastJIndex = jIndex;
+
+    backIndex = 0;
+    while ( itSorted != sorted.begin() ) {
+      --itSorted;
+      if ( *( *itSorted ).big < *( *itPendents ).big ) {
+        ++itSorted;
+        break;
+      }
+      ++backIndex;
+    }
+
+    sorted.insert( itSorted, *itPendents );
+
+//    ++insertedCount;
   }
 }
 

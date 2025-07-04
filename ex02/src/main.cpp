@@ -69,6 +69,29 @@ int main( int argc, char** argv )
             << " elements with std::list : " << listTimer
             << " us" << std::endl;
 
+
+//  /* ---------- verify the std::vector ---------- */
+//  bool vectorOK = true;
+//  for ( unsigned int i = 0; i < containerVector.size() && vectorOK; ++i )
+//    for ( unsigned int j = i + 1; j < containerVector.size(); ++j )
+//      if ( containerVector[i] > containerVector[j])
+//        vectorOK = false;
+//
+//  std::cout << "vector is " << (vectorOK ? "sorted\n" : "NOT sorted\n");
+//
+//  /* ---------- verify the std::list ---------- */
+//  bool listOK = true;
+//  for ( std::list<unsigned int>::const_iterator outer = containerList.begin(); outer != containerList.end() && listOK; ++outer) {
+//    std::list<unsigned int>::const_iterator inner = outer;
+//    ++inner;
+//    for ( ; inner != containerList.end(); ++inner)
+//      if (*outer > *inner)
+//        listOK = false;
+//  }
+//
+//  std::cout << "list is " << (listOK ? "sorted\n" : "NOT sorted\n");
+
+
   return 0;
 }
 
